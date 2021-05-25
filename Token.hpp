@@ -90,11 +90,9 @@ namespace ev
     {
         return one->getPrecedence() >= two->getPrecedence();
     }
-    class Literal : public tok::Token
-    {
-    public:
-        Literal(std::string value, unsigned position)
-        {
+    class Value : public tok::Token {
+        public:
+        Value(std::string value, unsigned position) {
             this->value = value;
             this->position = position;
         }
@@ -133,6 +131,24 @@ namespace ev
         bool inline isTernaryOperation() override
         {
             return false;
+        }
+    };
+    class Literal : public ev::Value
+    {
+    public:
+        Literal(std::string value, unsigned position) : ev::Value(value, position)
+        {
+        }
+        double inline evaluate(std::deque<double>& operands) override
+        {
+            return 0;
+        }
+    };
+    class VARIABLE : public ev::Value
+    {
+    public:
+        VARIABLE(std::string value, unsigned position) : ev::Value(value, position)
+        {
         }
         double inline evaluate(std::deque<double>& operands) override
         {

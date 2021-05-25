@@ -162,7 +162,13 @@ double ev::evaluate(std::vector<tok::Token *> rpn)
 }
 unsigned ev::consumeVar(std::string expr, unsigned pos, std::vector<tok::Token *> &tokens)
 {
-    // TODO
+    unsigned long long skip = pos;
+    for (unsigned itr = pos; (expr.length() != itr) && (isLetter(expr.at(itr)) || (expr.at(itr) == '_') || (isDigit(expr.at(itr)))); itr++)
+    {
+        skip++;
+    }
+    (new ev::VARIABLE{expr.substr(pos, skip - pos), pos})->consume(tokens);
+    return skip - 1;
     return 1;
 }
 // Check, if the element at pos matches to a literal and if it does,
