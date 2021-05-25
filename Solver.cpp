@@ -147,17 +147,8 @@ double ev::evaluate(std::vector<tok::Token *> rpn)
     {
         if (rpn.back()->isBinaryOperation())
         {
-            // The rightmost operand in the binary operation:
-            operand2 = stack.front();
-            stack.pop_front();
-            // The leftmost operand in the binary operation:
-            operand1 = stack.front();
-            stack.pop_front();
-            // The item on the stack is an operation:
-            std::vector<double> result(0);
-            result.push_back(operand1);
-            result.push_back(operand2);
-            stack.push_front(rpn.back()->evaluate(result));
+
+            stack.push_front(rpn.back()->evaluate(stack));
             rpn.pop_back();
         }
         else

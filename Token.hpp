@@ -59,7 +59,7 @@ namespace tok
          * Take a vector of numbers and evaluate the value of it using the 
          * specified operation this class consists of.
          * */
-        virtual double evaluate(std::vector<double>) { return 0x0; };
+        virtual double evaluate(std::deque<double>&) { return 0x0; };
         inline unsigned consume(std::vector<tok::Token *> &tokens)
         {
             tokens.push_back(this);
@@ -134,7 +134,7 @@ namespace ev
         {
             return false;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double>& operands) override
         {
             return 0;
         }
@@ -170,7 +170,7 @@ namespace ev
         {
             return false;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double>& operands) override
         {
             return 0;
         }
@@ -258,11 +258,18 @@ namespace ev
         {
             return 6;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double>& operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) + operands.at(1);
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 + operand2;
         }
     };
     class SUB : public BinaryOp
@@ -275,11 +282,18 @@ namespace ev
         {
             return 6;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double>& operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) - operands.at(1);
+                        // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 - operand2;
         }
     };
     class MULT : public BinaryOp
@@ -292,11 +306,18 @@ namespace ev
         {
             return 5;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double>& operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) * operands.at(1);
+                        // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 * operand2;
         }
     };
     class DIV : public BinaryOp
@@ -309,11 +330,18 @@ namespace ev
         {
             return 5;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double>& operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) / operands.at(1);
+                        // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 / operand2;
         }
     };
 }
