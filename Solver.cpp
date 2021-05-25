@@ -1,15 +1,5 @@
 #include "Token.hpp"
 // Reverse a list of tokens:
-std::vector<tok::Token *> reverse(std::vector<tok::Token *> &tokens)
-{
-    std::vector<tok::Token *> temp(tokens.size());
-    std::cout << tokens.size() << std::endl;
-    for (unsigned i = tokens.size() - 1; i != 0; i--)
-    {
-        temp.push_back(tokens.at(i));
-    }
-    return temp;
-}
 /**
  * Evaluate the value of an expression contained in the string parameter.
  **/
@@ -95,9 +85,29 @@ std::vector<tok::Token *> ev::infixtopostfix(std::vector<tok::Token *> tokens)
         return std::vector<tok::Token *>();
     for (tok::Token *&tok : tokens)
     {
+        tok->parsetoInfix(tok, tokens, posfix, operators);
+    }
+    while (!operators.empty())
+    {
+        posfix.push_back(operators.front());
+        operators.pop_front();
+    }
+
+    return posfix;
+}
+std::vector<tok::Token *> ev::infixtopostfixO(std::vector<tok::Token *> tokens)
+{
+    std::vector<tok::Token *> posfix;
+    std::deque<tok::Token *> operators;
+
+    if (tokens.size() == 0)
+        return std::vector<tok::Token *>();
+    for (tok::Token *&tok : tokens)
+    {
         if (tok->isBinaryOperation())
         {
             // operator:
+            // While the stack is not empty AND the front operator is not a parenthesis AND the current operator has a higher precedence than the one on the front:
             while (!operators.empty() && (!(operators.front()->isParenthesis()) && (isHigherPrecedenceThan(tok, operators.front()))))
             {
                 posfix.push_back(operators.front());
@@ -135,7 +145,6 @@ std::vector<tok::Token *> ev::infixtopostfix(std::vector<tok::Token *> tokens)
         posfix.push_back(operators.front());
         operators.pop_front();
     }
-
     return posfix;
 }
 double ev::evaluate(std::vector<tok::Token *> rpn)
