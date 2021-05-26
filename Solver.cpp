@@ -3,14 +3,14 @@
 /**
  * Evaluate the value of an expression contained in the string parameter.
  **/
-double ev::eval(std::string expr)
+double tok::eval(std::string expr)
 {
     std::vector<tok::Token *> tokens = tokenization(expr);
     tokens = infixtopostfix(tokens);
     return evaluate(tokens);
 }
 // TODO: Replace with match method utilizing the individual match methods of the individual classes.
-std::vector<tok::Token *> ev::tokenization(std::string expr)
+std::vector<tok::Token *> tok::tokenization(std::string expr)
 {
     std::vector<tok::Token *> tokens{};
     unsigned len = expr.length();
@@ -18,27 +18,51 @@ std::vector<tok::Token *> ev::tokenization(std::string expr)
     {
         switch (expr.at(i))
         {
+        case '&':
+            (new tok::AND(std::to_string('*'), i))->consume(tokens);
+            break;
+        case '|':
+            (new tok::OR(std::to_string('*'), i))->consume(tokens);
+            break;
+        case '!':
+            (new tok::NOT(std::to_string('*'), i))->consume(tokens);
+            break;
         case '*':
-            (new ev::MULT(std::to_string('*'), i))->consume(tokens);
+            (new tok::MULT(std::to_string('*'), i))->consume(tokens);
             break;
         case '/':
-            (new ev::DIV(std::to_string('/'), i))->consume(tokens);
+            (new tok::DIV(std::to_string('/'), i))->consume(tokens);
             break;
         case '+':
-            (new ev::ADD(std::to_string('+'), i))->consume(tokens);
+            if (i == 0 || (tokens.size() != 0 && tokens.back()->isBinaryOperation()))
+            {
+                (new tok::UNADD(std::to_string('+'), i))->consume(tokens);
+            }
+            else
+            {
+                (new tok::BINADD(std::to_string('+'), i))->consume(tokens);
+            }
+
             break;
         case '-':
-            (new ev::SUB(std::to_string('-'), i))->consume(tokens);
+            if (i == 0 || (tokens.size() != 0 && tokens.back()->isBinaryOperation()))
+            {
+                (new tok::UNSUB(std::to_string('-'), i))->consume(tokens);
+            }
+            else
+            {
+                (new tok::BINSUB(std::to_string('-'), i))->consume(tokens);
+            }
             break;
         case '(':
         case '[':
         case '{':
-            (new ev::LPAREN(std::to_string('('), i))->consume(tokens);
+            (new tok::LPAREN(std::to_string('('), i))->consume(tokens);
             break;
         case ')':
         case '}':
         case ']':
-            (new ev::RPAREN(std::to_string(')'), i))->consume(tokens);
+            (new tok::RPAREN(std::to_string(')'), i))->consume(tokens);
             break;
         case ' ':
         case '\r':
@@ -76,7 +100,7 @@ std::vector<tok::Token *> ev::tokenization(std::string expr)
     }
     return tokens;
 }
-std::vector<tok::Token *> ev::infixtopostfix(std::vector<tok::Token *> tokens)
+std::vector<tok::Token *> tok::infixtopostfix(std::vector<tok::Token *> tokens)
 {
     std::vector<tok::Token *> posfix;
     std::deque<tok::Token *> operators;
@@ -92,10 +116,9 @@ std::vector<tok::Token *> ev::infixtopostfix(std::vector<tok::Token *> tokens)
         posfix.push_back(operators.front());
         operators.pop_front();
     }
-
     return posfix;
 }
-std::vector<tok::Token *> ev::infixtopostfixO(std::vector<tok::Token *> tokens)
+std::vector<tok::Token *> tok::infixtopostfixO(std::vector<tok::Token *> tokens)
 {
     std::vector<tok::Token *> posfix;
     std::deque<tok::Token *> operators;
@@ -147,14 +170,14 @@ std::vector<tok::Token *> ev::infixtopostfixO(std::vector<tok::Token *> tokens)
     }
     return posfix;
 }
-double ev::evaluate(std::vector<tok::Token *> rpn)
+double tok::evaluate(std::vector<tok::Token *> rpn)
 { // http://www-stone.ch.cam.ac.uk/documentation/rrf/rpn.html
     std::deque<double> stack;
     std::reverse(rpn.begin(), rpn.end());
     double operand1, operand2;
     while (!rpn.empty())
     {
-        if (rpn.back()->isBinaryOperation())
+        if (rpn.back()->isBinaryOperation() || rpn.back()->isUnaryOperation())
         {
 
             stack.push_front(rpn.back()->evaluate(stack));
@@ -169,33 +192,37 @@ double ev::evaluate(std::vector<tok::Token *> rpn)
     }
     return stack.front();
 }
-unsigned ev::consumeVar(std::string expr, unsigned pos, std::vector<tok::Token *> &tokens)
+unsigned tok::consumeVar(std::string expr, unsigned pos, std::vector<tok::Token *> &tokens)
 {
     unsigned long long skip = pos;
     for (unsigned itr = pos; (expr.length() != itr) && (isLetter(expr.at(itr)) || (expr.at(itr) == '_') || (isDigit(expr.at(itr)))); itr++)
     {
         skip++;
     }
-    (new ev::VARIABLE{expr.substr(pos, skip - pos), pos})->consume(tokens);
+    (new tok::VARIABLE{expr.substr(pos, skip - pos), pos})->consume(tokens);
     return skip - 1;
     return 1;
 }
 // Check, if the element at pos matches to a literal and if it does,
-unsigned ev::consumeLit(std::string expr, unsigned pos, std::vector<tok::Token *> &tokens)
+unsigned tok::consumeLit(std::string expr, unsigned pos, std::vector<tok::Token *> &tokens)
 {
     unsigned long long skip = pos;
     for (unsigned itr = pos; (expr.length() != itr) && (isDigit(expr.at(itr)) || (expr.at(itr) == '.')); itr++)
     {
         skip++;
     }
-    (new ev::Literal{expr.substr(pos, skip - pos), pos})->consume(tokens);
+    (new tok::Literal{expr.substr(pos, skip - pos), pos})->consume(tokens);
     return skip - 1;
 }
 // Print the whole list front the element 0 to size-1;
-void ev::print(std::vector<tok::Token *> tokens)
+void tok::print(std::vector<tok::Token *> tokens)
 {
     for (tok::Token *&tok : tokens)
     {
         std::cout << tok->toString() << std::endl;
     }
+}
+inline bool tok::lookup(std::string match, std::string expr, int pos, std::vector<tok::Token> &tokens)
+{
+    return match.compare(expr.substr(pos, match.size()));
 }
