@@ -6,7 +6,10 @@
 double tok::eval(std::string expr)
 {
     std::vector<tok::Token *> tokens = tokenization(expr);
+    print(tokens);
     tokens = infixtopostfix(tokens);
+    std::cout << "Reverse polish notation:" << std::endl;
+    print(tokens);
     return evaluate(tokens);
 }
 // TODO: Replace with match method utilizing the individual match methods of the individual classes.
@@ -19,50 +22,69 @@ std::vector<tok::Token *> tok::tokenization(std::string expr)
         switch (expr.at(i))
         {
         case '&':
-            (new tok::AND(std::to_string('*'), i))->consume(tokens);
-            break;
-        case '|':
-            (new tok::OR(std::to_string('*'), i))->consume(tokens);
-            break;
-        case '!':
-            (new tok::NOT(std::to_string('*'), i))->consume(tokens);
-            break;
-        case '*':
-            (new tok::MULT(std::to_string('*'), i))->consume(tokens);
-            break;
-        case '/':
-            (new tok::DIV(std::to_string('/'), i))->consume(tokens);
-            break;
-        case '+':
-            if (i == 0 || (tokens.size() != 0 && tokens.back()->isBinaryOperation()))
+            if (tok::lookup("&&", expr, i, tokens))
             {
-                (new tok::UNADD(std::to_string('+'), i))->consume(tokens);
+                (new tok::LAND("&&", i))->consume(tokens);
+                std::cout << "!" << std::endl;
+                i++;
             }
             else
             {
-                (new tok::BINADD(std::to_string('+'), i))->consume(tokens);
+                (new tok::BAND("&", i))->consume(tokens);
+            }
+
+            break;
+        case '|':
+            if (tok::lookup("||", expr, i, tokens))
+            {
+                (new tok::LOR("||", i))->consume(tokens);
+                i++;
+            }
+            else
+            {
+                (new tok::BOR("|", i))->consume(tokens);
+            }
+
+            break;
+        case '!':
+            (new tok::LNOT("!", i))->consume(tokens);
+            break;
+        case '*':
+            (new tok::MULT("*", i))->consume(tokens);
+            break;
+        case '/':
+            (new tok::DIV("/", i))->consume(tokens);
+            break;
+        case '+':
+            if (i == 0 || (tokens.size() != 0 && (tokens.back()->isBinaryOperation() || tokens.back()->isLeftParen())))
+            {
+                (new tok::UNADD("+", i))->consume(tokens);
+            }
+            else
+            {
+                (new tok::BINADD("+", i))->consume(tokens);
             }
 
             break;
         case '-':
-            if (i == 0 || (tokens.size() != 0 && tokens.back()->isBinaryOperation()))
+            if (i == 0 || (tokens.size() != 0 && (tokens.back()->isBinaryOperation() || tokens.back()->isLeftParen())))
             {
-                (new tok::UNSUB(std::to_string('-'), i))->consume(tokens);
+                (new tok::UNSUB("-", i))->consume(tokens);
             }
             else
             {
-                (new tok::BINSUB(std::to_string('-'), i))->consume(tokens);
+                (new tok::BINSUB("-", i))->consume(tokens);
             }
             break;
         case '(':
         case '[':
         case '{':
-            (new tok::LPAREN(std::to_string('('), i))->consume(tokens);
+            (new tok::LPAREN("(", i))->consume(tokens);
             break;
         case ')':
         case '}':
         case ']':
-            (new tok::RPAREN(std::to_string(')'), i))->consume(tokens);
+            (new tok::RPAREN(")", i))->consume(tokens);
             break;
         case ' ':
         case '\r':
@@ -78,10 +100,10 @@ std::vector<tok::Token *> tok::tokenization(std::string expr)
             // \d*.?\d*e-?\d+ for ieee numbers.
             i = consumeLit(expr, i, tokens);
             break;
-        case '0':
-            // Might be a normal literal, but if it is followed by an x it is a hex digit, or if it is followed by a normal non-zero digit it is an oktal number.
-            // TODO!
-            break;
+        //case '0':
+        // Might be a normal literal, but if it is followed by an x it is a hex digit, or if it is followed by a normal non-zero digit it is an oktal number.
+        // TODO!
+        //break;
         default:
             if (isLetter(expr.at(i)))
             {
@@ -222,7 +244,8 @@ void tok::print(std::vector<tok::Token *> tokens)
         std::cout << tok->toString() << std::endl;
     }
 }
-inline bool tok::lookup(std::string match, std::string expr, int pos, std::vector<tok::Token> &tokens)
+inline bool tok::lookup(std::string match, std::string expr, int pos, std::vector<tok::Token *> &tokens)
 {
-    return match.compare(expr.substr(pos, match.size()));
+    std::string str = expr.substr(pos, match.size());
+    return !match.compare(str);
 }
