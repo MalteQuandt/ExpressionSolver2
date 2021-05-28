@@ -45,7 +45,7 @@ namespace tok
         {
             return this->position;
         }
-        std::string toString()
+        virtual std::string toString()
         {
             return this->value + " at " + std::to_string(this->position);
         }
@@ -107,10 +107,6 @@ namespace tok
             this->value = value;
             this->position = position;
         }
-        bool inline isLiteral() override
-        {
-            return true;
-        }
     };
     struct Literal : public tok::Value
     {
@@ -118,6 +114,11 @@ namespace tok
         Literal(std::string value, unsigned position) : tok::Value(value, position)
         {
         }
+        bool inline isLiteral() override
+        {
+            return true;
+        }
+        virtual double evaluate(std::deque<double> &) {return std::stod(this->getValue());};
     };
     struct VARIABLE : public tok::Value
     {
@@ -125,6 +126,11 @@ namespace tok
         VARIABLE(std::string value, unsigned position) : tok::Value(value, position)
         {
         }
+        virtual std::string toString()
+        {
+            return "Variable " + this->value + " at " + std::to_string(this->position);
+        }
+        virtual double evaluate(std::deque<double> &) {return std::stod(this->getValue());};
     };
     struct Parenthesis : public tok::Token
     {
@@ -188,10 +194,14 @@ namespace tok
             this->position = position;
         }
         // The number of operands this function takes
-        virtual inline int getOperands() {
+        virtual inline int getOperands()
+        {
             return 0;
         }
-
+        virtual std::string toString()
+        {
+            return "Function " + this->value + " at " + std::to_string(this->position);
+        }
         double evaluate(std::deque<double> &) { return 0x1; };
     };
     struct UnaryOp : public Operation

@@ -6,6 +6,7 @@
 double tok::eval(std::string expr)
 {
     std::vector<tok::Token *> tokens = tokenization(expr);
+    print(tokens);
     tokens = infixtopostfix(tokens);
     return evaluate(tokens);
 }
@@ -196,16 +197,9 @@ double tok::evaluate(std::vector<tok::Token *> rpn)
     double operand1, operand2;
     while (!rpn.empty())
     {
-        if (rpn.back()->isBinaryOperation() || rpn.back()->isUnaryOperation())
+        if (rpn.back()->isLiteral() || rpn.back()->isBinaryOperation() || rpn.back()->isUnaryOperation())
         {
-
             stack.push_front(rpn.back()->evaluate(stack));
-            rpn.pop_back();
-        }
-        else
-        {
-            // It is an operand:
-            stack.push_front(stod(rpn.back()->getValue()));
             rpn.pop_back();
         }
     }
@@ -218,7 +212,7 @@ unsigned tok::consumeVar(std::string expr, unsigned pos, std::vector<tok::Token 
     {
         skip++;
     }
-    if ((expr.size() - 1 != skip) && (expr.at(skip) == '('))
+    if ((expr.size() != skip) && (expr.at(skip) == '('))
     {
         // It is a function:
         (new tok::Function{expr.substr(pos, skip - pos), pos})->consume(tokens);
