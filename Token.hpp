@@ -16,6 +16,11 @@ namespace tok
 
         std::string value;
         unsigned position;
+        enum
+        {
+            LEFT,
+            RIGHT
+        } ASSOCIATIVITY;
         Token()
         {
             this->value = std::string("");
@@ -154,6 +159,7 @@ namespace tok
             this->value = value;
             this->position = position;
         }
+
         bool inline isRightParen() override
         {
             return true;
@@ -173,6 +179,20 @@ namespace tok
         Operation(std::string value, unsigned position) : tok::Token(value, position)
         {
         }
+    };
+    struct Function : Operation
+    {
+        Function(std::string value, unsigned position) : Operation(value, position)
+        {
+            this->value = value;
+            this->position = position;
+        }
+        // The number of operands this function takes
+        virtual inline int getOperands() {
+            return 0;
+        }
+
+        double evaluate(std::deque<double> &) { return 0x1; };
     };
     struct UnaryOp : public Operation
     {
@@ -458,7 +478,6 @@ namespace tok
             return operand1 / operand2;
         }
     };
-
 }
 
 #endif

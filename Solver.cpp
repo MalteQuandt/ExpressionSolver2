@@ -6,10 +6,7 @@
 double tok::eval(std::string expr)
 {
     std::vector<tok::Token *> tokens = tokenization(expr);
-    print(tokens);
     tokens = infixtopostfix(tokens);
-    std::cout << "Reverse polish notation:" << std::endl;
-    print(tokens);
     return evaluate(tokens);
 }
 // TODO: Replace with match method utilizing the individual match methods of the individual classes.
@@ -221,7 +218,16 @@ unsigned tok::consumeVar(std::string expr, unsigned pos, std::vector<tok::Token 
     {
         skip++;
     }
-    (new tok::VARIABLE{expr.substr(pos, skip - pos), pos})->consume(tokens);
+    if ((expr.size() - 1 != skip) && (expr.at(skip) == '('))
+    {
+        // It is a function:
+        (new tok::Function{expr.substr(pos, skip - pos), pos})->consume(tokens);
+    }
+    else
+    {
+        // It is a variable:
+        (new tok::VARIABLE{expr.substr(pos, skip - pos), pos})->consume(tokens);
+    }
     return skip - 1;
     return 1;
 }
