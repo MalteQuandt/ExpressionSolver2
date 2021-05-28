@@ -78,6 +78,7 @@ namespace tok
     unsigned consumeVar(std::string, unsigned, std::vector<tok::Token *> &);
     unsigned consumeLit(std::string, unsigned, std::vector<tok::Token *> &);
     void print(std::vector<tok::Token *>);
+    void print(std::deque<tok::Token *>);
     inline bool isLetter(char pos)
     {
         return (pos >= 'a' && pos <= 'z') || (pos >= 'A' && pos <= 'Z');
@@ -101,41 +102,9 @@ namespace tok
             this->value = value;
             this->position = position;
         }
-        bool inline isBinaryOperation() override
-        {
-            return false;
-        }
-        bool inline isUnaryOperation() override
-        {
-            return false;
-        }
-        bool inline isFunction() override
-        {
-            return false;
-        }
         bool inline isLiteral() override
         {
             return true;
-        }
-        bool inline isParenthesis() override
-        {
-            return false;
-        }
-        bool inline isRightParen() override
-        {
-            return false;
-        }
-        bool inline isLeftParen() override
-        {
-            return false;
-        }
-        unsigned inline getPrecedence() override
-        {
-            return 0;
-        }
-        bool inline isTernaryOperation() override
-        {
-            return false;
         }
     };
     struct Literal : public tok::Value
@@ -144,10 +113,6 @@ namespace tok
         Literal(std::string value, unsigned position) : tok::Value(value, position)
         {
         }
-        double inline evaluate(std::deque<double> &operands) override
-        {
-            return 0;
-        }
     };
     struct VARIABLE : public tok::Value
     {
@@ -155,45 +120,12 @@ namespace tok
         VARIABLE(std::string value, unsigned position) : tok::Value(value, position)
         {
         }
-        double inline evaluate(std::deque<double> &operands) override
-        {
-            return 0;
-        }
     };
     struct Parenthesis : public tok::Token
     {
-
-        bool inline isBinaryOperation() override
-        {
-            return false;
-        }
-        bool inline isUnaryOperation() override
-        {
-            return false;
-        }
-        bool inline isFunction() override
-        {
-            return false;
-        }
-        bool inline isLiteral() override
-        {
-            return false;
-        }
         bool inline isParenthesis() override
         {
             return true;
-        }
-        unsigned inline getPrecedence() override
-        {
-            return 0;
-        }
-        bool inline isTernaryOperation() override
-        {
-            return false;
-        }
-        double inline evaluate(std::deque<double> &operands) override
-        {
-            return 0;
         }
     };
     struct LPAREN : public Parenthesis
@@ -204,10 +136,7 @@ namespace tok
             this->value = value;
             this->position = position;
         }
-        bool inline isRightParen() override
-        {
-            return false;
-        }
+
         bool inline isLeftParen() override
         {
             return true;
@@ -229,10 +158,6 @@ namespace tok
         {
             return true;
         }
-        bool inline isLeftParen() override
-        {
-            return false;
-        }
         virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
         {
             while (!(operators.front()->isLeftParen()))
@@ -248,12 +173,6 @@ namespace tok
         Operation(std::string value, unsigned position) : tok::Token(value, position)
         {
         }
-        inline bool isFunction() { return false; };
-        inline bool isLiteral() { return false; };
-        inline bool isParenthesis() { return false; };
-        inline bool isRightParen() { return false; };
-        inline bool isLeftParen() { return false; };
-        inline bool isTernaryOperation() { return false; };
     };
     struct UnaryOp : public Operation
     {
@@ -262,38 +181,6 @@ namespace tok
         }
         UnaryOp() : UnaryOp("", 0)
         {
-        }
-        bool inline isBinaryOperation() override
-        {
-            return false;
-        }
-        bool inline isUnaryOperation() override
-        {
-            return true;
-        }
-        bool inline isFunction() override
-        {
-            return false;
-        }
-        bool inline isLiteral() override
-        {
-            return false;
-        }
-        bool inline isParenthesis() override
-        {
-            return false;
-        }
-        bool inline isRightParen() override
-        {
-            return false;
-        }
-        bool inline isLeftParen() override
-        {
-            return false;
-        }
-        bool inline isTernaryOperation() override
-        {
-            return false;
         }
         virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
         {
@@ -368,34 +255,6 @@ namespace tok
         bool inline isBinaryOperation() override
         {
             return true;
-        }
-        bool inline isUnaryOperation() override
-        {
-            return false;
-        }
-        bool inline isFunction() override
-        {
-            return false;
-        }
-        bool inline isLiteral() override
-        {
-            return false;
-        }
-        bool inline isParenthesis() override
-        {
-            return false;
-        }
-        bool inline isRightParen() override
-        {
-            return false;
-        }
-        bool inline isLeftParen() override
-        {
-            return false;
-        }
-        bool inline isTernaryOperation() override
-        {
-            return false;
         }
         virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
         {

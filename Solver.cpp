@@ -244,6 +244,13 @@ void tok::print(std::vector<tok::Token *> tokens)
         std::cout << tok->toString() << std::endl;
     }
 }
+void tok::print(std::deque<tok::Token *> tokens)
+{
+    for (tok::Token *&tok : tokens)
+    {
+        std::cout << tok->toString() << std::endl;
+    }
+}
 inline bool tok::lookup(std::string match, std::string expr, int pos, std::vector<tok::Token *> &tokens)
 {
     std::string str = expr.substr(pos, match.size());
