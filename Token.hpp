@@ -11,11 +11,16 @@
 
 namespace tok
 {
-    class Token
+    struct Token
     {
-    public:
+
         std::string value;
         unsigned position;
+        enum
+        {
+            LEFT,
+            RIGHT
+        } ASSOCIATIVITY;
         Token()
         {
             this->value = std::string("");
@@ -28,55 +33,58 @@ namespace tok
         }
         ~Token() = default;
 
-    public:
         // Inlined methods:
         /**
          * Return the numerical value of the token
          **/
-        inline std::string &getValue()
+        std::string &getValue()
         {
             return this->value;
         }
-        inline unsigned getPosition()
+        unsigned getPosition()
         {
             return this->position;
         }
-        inline std::string toString()
+        virtual std::string toString()
         {
             return this->value + " at " + std::to_string(this->position);
         }
         // Overloadable functions:
-        virtual inline unsigned getPrecedence() { return 0; };
-        virtual inline bool isBinaryOperation() { return false; };
-        virtual inline bool isUnaryOperation() { return false; };
-        virtual inline bool isFunction() { return false; };
-        virtual inline bool isLiteral() { return false; };
-        virtual inline bool isParenthesis() { return false; };
-        virtual inline bool isRightParen() { return false; };
-        virtual inline bool isLeftParen() { return false; };
-        virtual inline bool isTernaryOperation() { return false; };
+        virtual unsigned getPrecedence() { return 0; };
+        virtual bool isBinaryOperation() { return false; };
+        virtual bool isUnaryOperation() { return false; };
+        virtual bool isFunction() { return false; };
+        virtual bool isLiteral() { return false; };
+        virtual bool isParenthesis() { return false; };
+        virtual bool isRightParen() { return false; };
+        virtual bool isLeftParen() { return false; };
+        virtual bool isTernaryOperation() { return false; };
+        virtual int getOperands() { return 0; }
+        virtual bool isComma() {return 0;}
+        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        {
+            posfix.push_back(tok);
+        }
         /** 
          * Take a vector of numbers and evaluate the value of it using the 
          * specified operation this class consists of.
          * */
-        virtual double evaluate(std::vector<double>) { return 0x0; };
+        virtual double evaluate(std::deque<double> &) { return 0x0; };
         inline unsigned consume(std::vector<tok::Token *> &tokens)
         {
             tokens.push_back(this);
             return 1;
         }
     };
-}
-
-namespace ev
-{
     double eval(std::string);
     std::vector<tok::Token *> tokenization(std::string);
+    std::vector<tok::Token *> infixtopostfixO(std::vector<tok::Token *> tokens);
     std::vector<tok::Token *> infixtopostfix(std::vector<tok::Token *>);
     double evaluate(std::vector<tok::Token *>);
     unsigned consumeVar(std::string, unsigned, std::vector<tok::Token *> &);
     unsigned consumeLit(std::string, unsigned, std::vector<tok::Token *> &);
     void print(std::vector<tok::Token *>);
+    void print(std::deque<tok::Token *>);
     inline bool isLetter(char pos)
     {
         return (pos >= 'a' && pos <= 'z') || (pos >= 'A' && pos <= 'Z');
@@ -90,201 +98,370 @@ namespace ev
     {
         return one->getPrecedence() >= two->getPrecedence();
     }
-    class Literal : public tok::Token
+    inline bool lookup(std::string, std::string, int, std::vector<tok::Token *> &);
+    // The kompositor design pattern is used to create a hierarchical structure:
+    struct Value : public tok::Token
     {
-    public:
-        Literal(std::string value, unsigned position)
+
+        Value(std::string value, unsigned position)
         {
             this->value = value;
             this->position = position;
         }
-        bool inline isBinaryOperation() override
-        {
-            return false;
+    };
+    struct Comma : public tok::Token {
+        Comma(std::string str, unsigned pos) : tok::Token(str, pos) {}
+        Comma(unsigned pos) {
+            this->value = ",";
+            this->position = pos;
         }
-        bool inline isUnaryOperation() override
+        bool isComma() {return true;}
+    };
+    struct Literal : public tok::Value
+    {
+
+        Literal(std::string value, unsigned position) : tok::Value(value, position)
         {
-            return false;
-        }
-        bool inline isFunction() override
-        {
-            return false;
         }
         bool inline isLiteral() override
         {
             return true;
         }
-        bool inline isParenthesis() override
-        {
-            return false;
-        }
-        bool inline isRightParen() override
-        {
-            return false;
-        }
-        bool inline isLeftParen() override
-        {
-            return false;
-        }
-        unsigned inline getPrecedence() override
-        {
-            return 0;
-        }
-        bool inline isTernaryOperation() override
-        {
-            return false;
-        }
-        double inline evaluate(std::vector<double> operands) override
-        {
-            return 0;
-        }
+        virtual double evaluate(std::deque<double> &) { return std::stod(this->getValue()); };
     };
-    class Parenthesis : public tok::Token
+    struct VARIABLE : public tok::Value
     {
-    public:
-        bool inline isBinaryOperation() override
+
+        VARIABLE(std::string value, unsigned position) : tok::Value(value, position)
         {
-            return false;
         }
-        bool inline isUnaryOperation() override
+        virtual std::string toString()
         {
-            return false;
+            return "Variable " + this->value + " at " + std::to_string(this->position);
         }
-        bool inline isFunction() override
-        {
-            return false;
-        }
-        bool inline isLiteral() override
-        {
-            return false;
-        }
+        virtual double evaluate(std::deque<double> &) { return 0x1; };
+    };
+    struct Parenthesis : public tok::Token
+    {
         bool inline isParenthesis() override
         {
             return true;
         }
-        unsigned inline getPrecedence() override
-        {
-            return 0;
-        }
-        bool inline isTernaryOperation() override
-        {
-            return false;
-        }
-        double inline evaluate(std::vector<double> operands) override
-        {
-            return 0;
-        }
     };
-    class LPAREN : public Parenthesis
+    struct LPAREN : public Parenthesis
     {
-    public:
+
         LPAREN(std::string value, unsigned position)
         {
             this->value = value;
             this->position = position;
         }
-        bool inline isRightParen() override
-        {
-            return false;
-        }
+
         bool inline isLeftParen() override
         {
             return true;
         }
+        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        {
+            operators.push_front(tok);
+        }
     };
-    class RPAREN : public Parenthesis
+    struct RPAREN : public Parenthesis
     {
-    public:
+
         RPAREN(std::string value, unsigned position)
         {
             this->value = value;
             this->position = position;
         }
+
         bool inline isRightParen() override
         {
             return true;
         }
-        bool inline isLeftParen() override
+        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
         {
-            return false;
+            while (!(operators.front()->isLeftParen()))
+            {
+                posfix.push_back(operators.front());
+                operators.pop_front();
+            }
+            operators.pop_front();
         }
     };
-    class BinaryOp : public tok::Token
+    struct Operation : public tok::Token
     {
+        Operation(std::string value, unsigned position) : tok::Token(value, position)
+        {
+        }
+    };
+    struct Function : Operation
+    {
+    private:
+        // The operands this function takes as it's parameters.
+        std::vector<double> operands;
     public:
-        BinaryOp(std::string value, unsigned position) : tok::Token(value, position)
+        Function(std::string value, unsigned position, unsigned operands=1) : Operation(value, position)
+        {
+            this->value = value;
+            this->position = position;
+            this->operands = std::vector<double>(operands);
+        }
+        // The number of operands this function takes
+        inline int getOperands()
+        {
+            return this->operands.size();
+        }
+        inline std::vector<double>& getOperand() {
+            return this->operands;
+        }
+        inline std::string toString()
+        {
+            return "Function " + this->value + " at " + std::to_string(this->position);
+        }
+        double evaluate(std::deque<double> & toks) { 
+            return 0x1; // TODO: Implement actual function with parameters and values and stuff:
+        };
+    };
+    struct UnaryOp : public Operation
+    {
+        UnaryOp(std::string value, unsigned position) : Operation(value, position)
+        {
+        }
+        UnaryOp() : UnaryOp("", 0)
+        {
+        }
+        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        {
+            operators.push_front(tok);
+        }
+    };
+    struct UNADD : public UnaryOp
+    {
+
+        UNADD(std::string value, unsigned position) : UnaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 3;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand;
+            if (operands.size() < 1)
+                return 0.0;
+            // The rightmost operand in the unary operation:
+            operand = operands.front();
+            operands.pop_front();
+            return operand;
+        }
+    };
+    struct LNOT : public UnaryOp
+    {
+        LNOT(std::string string, int pos) : UnaryOp(string, pos) {}
+        unsigned inline getPrecedence() override
+        {
+            return 3;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand;
+            if (operands.size() < 1)
+                return 0.0;
+            // The rightmost operand in the unary operation:
+            operand = operands.front();
+            operands.pop_front();
+            return !operand;
+        }
+    };
+    struct UNSUB : public UnaryOp
+    {
+
+        UNSUB(std::string value, unsigned position) : UnaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 3;
+        }
+        double evaluate(std::deque<double> &operands) override
+        {
+            double operand;
+            if (operands.size() < 1)
+                return 0.0;
+            operand = operands.front();
+            operands.pop_front();
+            return -operand;
+        }
+    };
+    struct BinaryOp : public Operation
+    {
+
+        BinaryOp(std::string value, unsigned position) : Operation(value, position)
         {
         }
         bool inline isBinaryOperation() override
         {
             return true;
         }
-        bool inline isUnaryOperation() override
+        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
         {
-            return false;
-        }
-        bool inline isFunction() override
-        {
-            return false;
-        }
-        bool inline isLiteral() override
-        {
-            return false;
-        }
-        bool inline isParenthesis() override
-        {
-            return false;
-        }
-        bool inline isRightParen() override
-        {
-            return false;
-        }
-        bool inline isLeftParen() override
-        {
-            return false;
-        }
-        bool inline isTernaryOperation() override
-        {
-            return false;
+            while (!operators.empty() && (!(operators.front()->isParenthesis()) && (isHigherPrecedenceThan(tok, operators.front()))))
+            {
+                posfix.push_back(operators.front());
+                operators.pop_front();
+            }
+            operators.push_front(tok);
         }
     };
-    class ADD : public BinaryOp
+    struct BINADD : public BinaryOp
     {
-    public:
-        ADD(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
+
+        BINADD(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
         {
         }
         unsigned inline getPrecedence() override
         {
             return 6;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double> &operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) + operands.at(1);
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 + operand2;
         }
     };
-    class SUB : public BinaryOp
+    struct BINSUB : public BinaryOp
     {
-    public:
-        SUB(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
+
+        BINSUB(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
         {
         }
         unsigned inline getPrecedence() override
         {
             return 6;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double> &operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) - operands.at(1);
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 - operand2;
         }
     };
-    class MULT : public BinaryOp
+    struct BAND : public BinaryOp
     {
-    public:
+
+        BAND(std::string value, unsigned position) : BAND::BinaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 10;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand1, operand2;
+            if (operands.size() < 2)
+                return 0.0;
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return (int)operand1 & (int)operand2;
+        }
+    };
+    struct LAND : public BinaryOp
+    {
+
+        LAND(std::string value, unsigned position) : BinaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 13;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand1, operand2;
+            if (operands.size() < 2)
+                return 0.0;
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return (int)operand1 && (int)operand2;
+        }
+    };
+    struct LOR : public BinaryOp
+    {
+
+        LOR(std::string value, unsigned position) : BinaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 14;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand1, operand2;
+            if (operands.size() < 2)
+                return 0.0;
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return (int)operand1 || (int)operand2;
+        }
+    };
+    struct BOR : public BinaryOp
+    {
+
+        BOR(std::string value, unsigned position) : BinaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 12;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand1, operand2;
+            if (operands.size() < 2)
+                return 0.0;
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return (int)operand1 | (int)operand2;
+        }
+    };
+    struct MULT : public BinaryOp
+    {
+
         MULT(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
         {
         }
@@ -292,16 +469,47 @@ namespace ev
         {
             return 5;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double> &operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) * operands.at(1);
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 * operand2;
         }
     };
-    class DIV : public BinaryOp
+    struct MOD : public BinaryOp
     {
-    public:
+
+        MOD(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 5;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand1, operand2;
+            if (operands.size() < 2)
+                return 0.0;
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return (int)operand1 % (int)operand2;
+        }
+    };
+    struct DIV : public BinaryOp
+    {
+
         DIV(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
         {
         }
@@ -309,11 +517,18 @@ namespace ev
         {
             return 5;
         }
-        double inline evaluate(std::vector<double> operands) override
+        double inline evaluate(std::deque<double> &operands) override
         {
-            if (operands.size() != 2)
+            double operand1, operand2;
+            if (operands.size() < 2)
                 return 0.0;
-            return operands.at(0) / operands.at(1);
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return operand1 / operand2;
         }
     };
 }
