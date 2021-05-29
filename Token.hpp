@@ -60,6 +60,7 @@ namespace tok
         virtual bool isLeftParen() { return false; };
         virtual bool isTernaryOperation() { return false; };
         virtual int getOperands() { return 0; }
+        virtual bool isComma() {return 0;}
         virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
         {
             posfix.push_back(tok);
@@ -108,6 +109,14 @@ namespace tok
             this->position = position;
         }
     };
+    struct Comma : public tok::Token {
+        Comma(std::string str, unsigned pos) : tok::Token(str, pos) {}
+        Comma(unsigned pos) {
+            this->value = ",";
+            this->position = pos;
+        }
+        bool isComma() {return true;}
+    };
     struct Literal : public tok::Value
     {
 
@@ -118,7 +127,7 @@ namespace tok
         {
             return true;
         }
-        virtual double evaluate(std::deque<double> &) {return std::stod(this->getValue());};
+        virtual double evaluate(std::deque<double> &) { return std::stod(this->getValue()); };
     };
     struct VARIABLE : public tok::Value
     {
@@ -130,7 +139,7 @@ namespace tok
         {
             return "Variable " + this->value + " at " + std::to_string(this->position);
         }
-        virtual double evaluate(std::deque<double> &) {return std::stod(this->getValue());};
+        virtual double evaluate(std::deque<double> &) { return 0x1; };
     };
     struct Parenthesis : public tok::Token
     {
@@ -188,21 +197,31 @@ namespace tok
     };
     struct Function : Operation
     {
-        Function(std::string value, unsigned position) : Operation(value, position)
+    private:
+        // The operands this function takes as it's parameters.
+        std::vector<double> operands;
+    public:
+        Function(std::string value, unsigned position, unsigned operands=1) : Operation(value, position)
         {
             this->value = value;
             this->position = position;
+            this->operands = std::vector<double>(operands);
         }
         // The number of operands this function takes
-        virtual inline int getOperands()
+        inline int getOperands()
         {
-            return 0;
+            return this->operands.size();
         }
-        virtual std::string toString()
+        inline std::vector<double>& getOperand() {
+            return this->operands;
+        }
+        inline std::string toString()
         {
             return "Function " + this->value + " at " + std::to_string(this->position);
         }
-        double evaluate(std::deque<double> &) { return 0x1; };
+        double evaluate(std::deque<double> & toks) { 
+            return 0x1; // TODO: Implement actual function with parameters and values and stuff:
+        };
     };
     struct UnaryOp : public Operation
     {
@@ -462,6 +481,30 @@ namespace tok
             operand1 = operands.front();
             operands.pop_front();
             return operand1 * operand2;
+        }
+    };
+    struct MOD : public BinaryOp
+    {
+
+        MOD(std::string value, unsigned position) : BinaryOp::BinaryOp(value, position)
+        {
+        }
+        unsigned inline getPrecedence() override
+        {
+            return 5;
+        }
+        double inline evaluate(std::deque<double> &operands) override
+        {
+            double operand1, operand2;
+            if (operands.size() < 2)
+                return 0.0;
+            // The rightmost operand in the binary operation:
+            operand2 = operands.front();
+            operands.pop_front();
+            // The leftmost operand in the binary operation:
+            operand1 = operands.front();
+            operands.pop_front();
+            return (int)operand1 % (int)operand2;
         }
     };
     struct DIV : public BinaryOp

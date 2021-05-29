@@ -32,6 +32,9 @@ std::vector<tok::Token *> tok::tokenization(std::string expr)
             }
 
             break;
+        case '%':
+            (new tok::MOD("%", i))->consume(tokens);
+        break;
         case '|':
             if (tok::lookup("||", expr, i, tokens))
             {
@@ -73,6 +76,9 @@ std::vector<tok::Token *> tok::tokenization(std::string expr)
             {
                 (new tok::BINSUB("-", i))->consume(tokens);
             }
+            break;
+        case ',':
+            (new tok::Comma(",", i))->consume(tokens);
             break;
         case '(':
         case '[':
@@ -197,11 +203,10 @@ double tok::evaluate(std::vector<tok::Token *> rpn)
     double operand1, operand2;
     while (!rpn.empty())
     {
-        if (rpn.back()->isLiteral() || rpn.back()->isBinaryOperation() || rpn.back()->isUnaryOperation())
-        {
+
             stack.push_front(rpn.back()->evaluate(stack));
             rpn.pop_back();
-        }
+        
     }
     return stack.front();
 }
@@ -214,7 +219,7 @@ unsigned tok::consumeVar(std::string expr, unsigned pos, std::vector<tok::Token 
     }
     if ((expr.size() != skip) && (expr.at(skip) == '('))
     {
-        // It is a function:
+        // It is a function: (only two operands right now)
         (new tok::Function{expr.substr(pos, skip - pos), pos})->consume(tokens);
     }
     else
