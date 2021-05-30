@@ -60,10 +60,15 @@ namespace tok
         virtual bool isLeftParen() { return false; };
         virtual bool isTernaryOperation() { return false; };
         virtual int getOperands() { return 0; }
-        virtual bool isComma() {return 0;}
-        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        virtual bool isComma() { return 0; }
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos)
         {
             posfix.push_back(tok);
+            return 0;
+        }
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos, unsigned end)
+        {
+            return parsetoInfix(tok, tokens, posfix, operators, pos);
         }
         /** 
          * Take a vector of numbers and evaluate the value of it using the 
@@ -79,6 +84,7 @@ namespace tok
     double eval(std::string);
     std::vector<tok::Token *> tokenization(std::string);
     std::vector<tok::Token *> infixtopostfixO(std::vector<tok::Token *> tokens);
+    std::vector<tok::Token *> infixtopostfix(std::vector<tok::Token *> tokens, unsigned, unsigned);
     std::vector<tok::Token *> infixtopostfix(std::vector<tok::Token *>);
     double evaluate(std::vector<tok::Token *>);
     unsigned consumeVar(std::string, unsigned, std::vector<tok::Token *> &);
@@ -109,13 +115,23 @@ namespace tok
             this->position = position;
         }
     };
-    struct Comma : public tok::Token {
+    struct Comma : public tok::Token
+    {
         Comma(std::string str, unsigned pos) : tok::Token(str, pos) {}
-        Comma(unsigned pos) {
+        Comma(unsigned pos)
+        {
             this->value = ",";
             this->position = pos;
         }
-        bool isComma() {return true;}
+        bool isComma() { return true; }
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos)
+        {
+            // TODO:
+        }
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos, unsigned until)
+        {
+            // TODO:
+        }
     };
     struct Literal : public tok::Value
     {
@@ -161,9 +177,10 @@ namespace tok
         {
             return true;
         }
-        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos)
         {
             operators.push_front(tok);
+            return 0;
         }
     };
     struct RPAREN : public Parenthesis
@@ -179,7 +196,7 @@ namespace tok
         {
             return true;
         }
-        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos)
         {
             while (!(operators.front()->isLeftParen()))
             {
@@ -187,6 +204,7 @@ namespace tok
                 operators.pop_front();
             }
             operators.pop_front();
+            return 0;
         }
     };
     struct Operation : public tok::Token
@@ -194,34 +212,6 @@ namespace tok
         Operation(std::string value, unsigned position) : tok::Token(value, position)
         {
         }
-    };
-    struct Function : Operation
-    {
-    private:
-        // The operands this function takes as it's parameters.
-        std::vector<double> operands;
-    public:
-        Function(std::string value, unsigned position, unsigned operands=1) : Operation(value, position)
-        {
-            this->value = value;
-            this->position = position;
-            this->operands = std::vector<double>(operands);
-        }
-        // The number of operands this function takes
-        inline int getOperands()
-        {
-            return this->operands.size();
-        }
-        inline std::vector<double>& getOperand() {
-            return this->operands;
-        }
-        inline std::string toString()
-        {
-            return "Function " + this->value + " at " + std::to_string(this->position);
-        }
-        double evaluate(std::deque<double> & toks) { 
-            return 0x1; // TODO: Implement actual function with parameters and values and stuff:
-        };
     };
     struct UnaryOp : public Operation
     {
@@ -231,9 +221,10 @@ namespace tok
         UnaryOp() : UnaryOp("", 0)
         {
         }
-        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos)
         {
             operators.push_front(tok);
+            return 0;
         }
     };
     struct UNADD : public UnaryOp
@@ -305,7 +296,7 @@ namespace tok
         {
             return true;
         }
-        virtual void parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators)
+        virtual unsigned parsetoInfix(tok::Token *&tok, std::vector<tok::Token *> &tokens, std::vector<tok::Token *> &posfix, std::deque<tok::Token *> &operators, unsigned pos)
         {
             while (!operators.empty() && (!(operators.front()->isParenthesis()) && (isHigherPrecedenceThan(tok, operators.front()))))
             {
@@ -313,6 +304,7 @@ namespace tok
                 operators.pop_front();
             }
             operators.push_front(tok);
+            return 0;
         }
     };
     struct BINADD : public BinaryOp

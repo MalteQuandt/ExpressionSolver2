@@ -8,6 +8,8 @@ double tok::eval(std::string expr)
     std::vector<tok::Token *> tokens = tokenization(expr);
     print(tokens);
     tokens = infixtopostfix(tokens);
+    std::cout << "\nAfter shunting-yard" << std::endl;
+    print(tokens);
     return evaluate(tokens);
 }
 // TODO: Replace with match method utilizing the individual match methods of the individual classes.
@@ -34,7 +36,7 @@ std::vector<tok::Token *> tok::tokenization(std::string expr)
             break;
         case '%':
             (new tok::MOD("%", i))->consume(tokens);
-        break;
+            break;
         case '|':
             if (tok::lookup("||", expr, i, tokens))
             {
@@ -133,9 +135,28 @@ std::vector<tok::Token *> tok::infixtopostfix(std::vector<tok::Token *> tokens)
 
     if (tokens.size() == 0)
         return std::vector<tok::Token *>();
-    for (tok::Token *&tok : tokens)
+    for (unsigned i = 0; i < tokens.size(); i++)
     {
-        tok->parsetoInfix(tok, tokens, posfix, operators);
+        i += tokens.at(i)->parsetoInfix(tokens.at(i), tokens, posfix, operators, i);
+    }
+    while (!operators.empty())
+    {
+        posfix.push_back(operators.front());
+        operators.pop_front();
+    }
+    return posfix;
+}
+std::vector<tok::Token *> tok::infixtopostfix(std::vector<tok::Token *> tokens, unsigned from, unsigned to)
+{
+    std::vector<tok::Token *> posfix;
+    std::deque<tok::Token *> operators;
+    std::cout << "we have reached another level of recursion" << std::endl;
+
+    if (tokens.size() == 0)
+        return std::vector<tok::Token *>();
+    for (unsigned i = from; i < tokens.size() && (i < to); i++)
+    {
+        i += tokens.at(i)->parsetoInfix(tokens.at(i), tokens, posfix, operators, i);
     }
     while (!operators.empty())
     {
@@ -200,13 +221,11 @@ double tok::evaluate(std::vector<tok::Token *> rpn)
 { // http://www-stone.ch.cam.ac.uk/documentation/rrf/rpn.html
     std::deque<double> stack;
     std::reverse(rpn.begin(), rpn.end());
-    double operand1, operand2;
     while (!rpn.empty())
     {
 
-            stack.push_front(rpn.back()->evaluate(stack));
-            rpn.pop_back();
-        
+        stack.push_front(rpn.back()->evaluate(stack));
+        rpn.pop_back();
     }
     return stack.front();
 }
@@ -217,16 +236,8 @@ unsigned tok::consumeVar(std::string expr, unsigned pos, std::vector<tok::Token 
     {
         skip++;
     }
-    if ((expr.size() != skip) && (expr.at(skip) == '('))
-    {
-        // It is a function: (only two operands right now)
-        (new tok::Function{expr.substr(pos, skip - pos), pos})->consume(tokens);
-    }
-    else
-    {
-        // It is a variable:
-        (new tok::VARIABLE{expr.substr(pos, skip - pos), pos})->consume(tokens);
-    }
+    (new tok::VARIABLE{expr.substr(pos, skip - pos), pos})->consume(tokens);
+
     return skip - 1;
     return 1;
 }

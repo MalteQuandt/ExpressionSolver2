@@ -2,16 +2,16 @@ FLAGS = -g3 -O0 -Wall -Wextra -std=c++17
 CC = g++
 INC = Token.hpp
 
-all: main.o Solver.o start
+all: main Solver start
 
-main.o: main.cpp
+main: main.cpp
 	@echo "Compiling main to object..."
 	$(CC) $(FLAGS) -c $< -I Token.hpp
-Solver.o: Solver.cpp
+Solver: Solver.cpp
 	@echo "Compiling Solver to object..."
-	$(CC) $(FLAGS) -c $< -I Token.hpp
+	$(CC) $(FLAGS) -c $<
 
-start: main.o Solver.o
+start: main Solver
 	@echo "Linking the object files..."
 	$(CC) -o "main.exe" main.o Solver.o -I Token.hpp;
 	@echo "Done!"
